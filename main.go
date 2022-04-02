@@ -203,26 +203,19 @@ func main() {
 		}()
 		u.repl()
 	})
-	var err error
-	if os.Getenv("PORT") != "" {
-		port, err = strconv.Atoi(os.Getenv("PORT"))
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-	}
 
 	fmt.Printf("Starting chat server on port %d and profiling on port %d\n", port, profilePort)
 	go func() {
 		if port == 22 {
 			fmt.Println("Also starting chat server on port 443")
-			err = ssh.ListenAndServe(":443", nil, ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"))
+			err := ssh.ListenAndServe(":443", nil, ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"))
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
 		}
 	}()
-	err = ssh.ListenAndServe(
+
+	err := ssh.ListenAndServe(
 		fmt.Sprintf(":%d", port),
 		nil,
 		ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"),
