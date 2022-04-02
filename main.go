@@ -129,12 +129,6 @@ func main() {
 	}
 }
 
-func universeBroadcast(senderName, msg string) {
-	for _, r := range rooms {
-		r.broadcast(senderName, msg)
-	}
-}
-
 func (r *room) broadcast(senderName, msg string) {
 	if msg == "" {
 		return
@@ -283,7 +277,6 @@ func newUser(s ssh.Session) *user {
 	}
 
 	clearCMD("", u) // always clear the screen on connect
-	valentines(u)
 
 	if len(backlog) > 0 {
 		lastStamp := backlog[0].timestamp
@@ -322,17 +315,6 @@ func newUser(s ssh.Session) *user {
 	}
 	mainRoom.broadcast(devbot, u.name+" has joined the chat")
 	return u
-}
-
-func valentines(u *user) {
-	if time.Now().Month() == time.February && (time.Now().Day() == 14 || time.Now().Day() == 15 || time.Now().Day() == 13) {
-		// TODO: add a few more random images
-		u.writeln("", "![❤️](https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/160/apple/81/heavy-black-heart_2764.png)")
-		//u.term.Write([]byte("\u001B[A\u001B[2K\u001B[A\u001B[2K")) // delete last line of rendered markdown
-		time.Sleep(time.Second)
-		// clear screen
-		clearCMD("", u)
-	}
 }
 
 // cleanupRoom deletes a room if it's empty and isn't the main room
