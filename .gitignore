@@ -3,7 +3,6 @@
 /devchat
 .idea
 /dist
-slackAPI.txt*
 adminPass.txt
 *.gob
 *.swp
@@ -11,6 +10,4 @@ log.txt
 bans.json
 allusers.json
 iptables.sh
-twitter-creds.json
-twitter-creds.json.bak
 devzat-config.yml

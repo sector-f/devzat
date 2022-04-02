@@ -10,7 +10,6 @@ require (
 	github.com/quackduck/go-term-markdown v0.13.0
 	github.com/quackduck/term v0.0.0-20220217011143-d10974b5f140
 	github.com/shurcooL/tictactoe v0.0.0-20210613024444-e573ff1376a3
-	github.com/slack-go/slack v0.10.2
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -22,7 +21,6 @@ require (
 	github.com/eliukblau/pixterm v1.3.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20220310201231-552c6011c0b8 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/jwalton/go-supportscolor v1.1.0 // indirect
 	github.com/kyokomi/emoji/v2 v2.2.9 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect

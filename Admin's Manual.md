@@ -51,8 +51,4 @@ The format is an ID string followed by any notes about the admin.
 
 Devzat includes features that may not be needed by self-hosted instances.
 
-Disable Twitter integration by exporting the environment variable `DEVZAT_OFFLINE_TWITTER=true`.
-
-Disable Slack integration by exporting `DEVZAT_OFFLINE_SLACK=true`.
-
 Disable all network usage except for fetching images using `DEVZAT_OFFLINE=true`.

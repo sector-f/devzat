@@ -29,8 +29,6 @@ var (
 	port        = 22
 	scrollback  = 16
 	profilePort = 5555
-	// should this instance run offline? (should it not connect to slack?)
-	offlineSlack = os.Getenv("DEVZAT_OFFLINE_SLACK") != ""
 
 	mainRoom         = &room{"#main", make([]*user, 0, 10), sync.Mutex{}}
 	rooms            = map[string]*room{mainRoom.name: mainRoom}
@@ -71,7 +69,6 @@ type user struct {
 
 	bell          bool
 	pingEverytime bool
-	isSlack       bool
 	formatTime24  bool
 
 	color   string
@@ -140,13 +137,7 @@ func main() {
 		}
 	}
 
-	// Check for global offline for backwards compatibility
-	if os.Getenv("DEVZAT_OFFLINE") != "" {
-		offlineSlack = true
-	}
-
 	fmt.Printf("Starting chat server on port %d and profiling on port %d\n", port, profilePort)
-	go getMsgsFromSlack()
 	go func() {
 		if port == 22 {
 			fmt.Println("Also starting chat server on port 443")
@@ -171,18 +162,6 @@ func universeBroadcast(senderName, msg string) {
 }
 
 func (r *room) broadcast(senderName, msg string) {
-	if msg == "" {
-		return
-	}
-	if senderName != "" {
-		slackChan <- "[" + r.name + "] " + senderName + ": " + msg
-	} else {
-		slackChan <- "[" + r.name + "] " + msg
-	}
-	r.broadcastNoSlack(senderName, msg)
-}
-
-func (r *room) broadcastNoSlack(senderName, msg string) {
 	if msg == "" {
 		return
 	}
@@ -587,43 +566,13 @@ func (u *user) repl() {
 			u.close(red.Paint(u.name + " has been banned for spamming"))
 			return
 		}
-		line = replaceSlackEmoji(line)
+
 		runCommands(line, u)
 	}
 }
 
-func replaceSlackEmoji(input string) string {
-	if len(input) < 4 {
-		return input
-	}
-	emojiName := ""
-	result := make([]byte, 0, len(input))
-	inEmojiName := false
-	for i := 0; i < len(input)-1; i++ {
-		if inEmojiName {
-			emojiName += string(input[i]) // end result: if input contains "::lol::", emojiName will contain ":lol:". "::lol:: ::cat::" => ":lol::cat:"
-		}
-		if input[i] == ':' && input[i+1] == ':' {
-			inEmojiName = !inEmojiName
-		}
-		//if !inEmojiName {
-		result = append(result, input[i])
-		//}
-	}
-	result = append(result, input[len(input)-1])
-	if emojiName != "" {
-		toAdd := fetchEmoji(strings.Split(strings.ReplaceAll(emojiName[1:len(emojiName)-1], "::", ":"), ":")) // cut the ':' at the start and end
-
-		result = append(result, toAdd...)
-	}
-	return string(result)
-}
-
 // accepts a ':' separated list of emoji
 func fetchEmoji(names []string) string {
-	if offlineSlack {
-		return ""
-	}
 	result := ""
 	for _, name := range names {
 		result += fetchEmojiSingle(name)
@@ -632,9 +581,6 @@ func fetchEmoji(names []string) string {
 }
 
 func fetchEmojiSingle(name string) string {
-	if offlineSlack {
-		return ""
-	}
 	r, err := http.Get("https://e.benjaminsmith.dev/" + name)
 	if err != nil {
 		return ""

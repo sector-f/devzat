@@ -78,8 +78,6 @@ func init() {
 
 // runCommands parses a line of raw input from a user and sends a message as
 // required, running any commands the user may have called.
-// It also accepts a boolean indicating if the line of input is from slack, in
-// which case some commands will not be run (such as ./tz and ./exit)
 func runCommands(line string, u *user) {
 	if detectBadWords(line) {
 		banUser("devbot [grow up]", u)
@@ -99,7 +97,7 @@ func runCommands(line string, u *user) {
 		dmRoomCMD(line, u)
 		return
 	}
-	if strings.HasPrefix(line, "=") && !u.isSlack {
+	if strings.HasPrefix(line, "=") {
 		dmCMD(strings.TrimSpace(strings.TrimPrefix(line, "=")), u)
 		return
 	}
@@ -116,11 +114,7 @@ func runCommands(line string, u *user) {
 		return
 	}
 
-	if u.isSlack {
-		u.room.broadcastNoSlack(u.name, line)
-	} else {
-		u.room.broadcast(u.name, line)
-	}
+	u.room.broadcast(u.name, line)
 
 	devbotChat(u.room, line)
 
@@ -175,17 +169,10 @@ func dmCMD(rest string, u *user) {
 
 func hangCMD(rest string, u *user) {
 	if len(rest) > 1 {
-		if !u.isSlack {
-			u.writeln(u.name, "hang "+rest)
-			u.writeln(devbot, "(that word won't show dw)")
-		}
 		hangGame = &hangman{rest, 15, " "} // default value of guesses so empty space is given away
 		u.room.broadcast(devbot, u.name+" has started a new game of Hangman! Guess letters with hang <letter>")
 		u.room.broadcast(devbot, "```\n"+hangPrint(hangGame)+"\nTries: "+strconv.Itoa(hangGame.triesLeft)+"\n```")
 		return
-	}
-	if !u.isSlack {
-		u.room.broadcast(u.name, "hang "+rest)
 	}
 	if strings.Trim(hangGame.word, hangGame.guesses) == "" {
 		u.room.broadcast(devbot, "The game has ended. Start a new game with hang <word>")
