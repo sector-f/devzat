@@ -25,6 +25,63 @@ import (
 	terminal "github.com/quackduck/term"
 )
 
+type server struct {
+	port        int
+	scrollback  int
+	profilePort int
+
+	mainRoom         *room
+	rooms            map[string]*room
+	backlog          []backlogMessage
+	bans             []ban
+	idsInMinToTimes  map[string]int
+	antispamMessages map[string]int
+
+	logfile     *os.File
+	l           *log.Logger
+	devbot      string
+	startupTime time.Time
+}
+
+func newServer() (*server, error) {
+	// TODO: replace with config type
+	var (
+		port        = 22
+		scrollback  = 16
+		profilePort = 5555
+		logfileName = "log.txt"
+	)
+
+	// Do the thing(s) that can fail as early as possible
+	logfile, err := os.OpenFile(logfileName, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	s := server{
+		port:        port,
+		scrollback:  scrollback,
+		profilePort: profilePort,
+
+		mainRoom:         &room{name: "#main"},
+		rooms:            make(map[string]*room),
+		backlog:          make([]backlogMessage, 0, scrollback),
+		idsInMinToTimes:  make(map[string]int, 10),
+		antispamMessages: make(map[string]int),
+
+		logfile:     logfile,
+		l:           log.New(io.MultiWriter(logfile, os.Stdout), "", log.Ldate|log.Ltime|log.Lshortfile),
+		devbot:      "devbot",
+		startupTime: time.Now(),
+	}
+
+	return &s, nil
+}
+
+func (s *server) shutdown() {
+	s.logfile.Close()
+}
+
 var (
 	port        = 22
 	scrollback  = 16
