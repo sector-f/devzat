@@ -6,11 +6,14 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"time"
 
 	"github.com/gliderlabs/ssh"
+	terminal "github.com/quackduck/term"
 )
 
 type server struct {
@@ -27,7 +30,7 @@ type server struct {
 
 	logfile     *os.File
 	l           *log.Logger
-	devbot      string // TODO: can we get rid of this entirely?
+	devbot      string // TODO: can we get rid of this entirely? Or maybe keep it as a package-scoped var?
 	startupTime time.Time
 }
 
@@ -132,4 +135,101 @@ func (s *server) universeBroadcast(msg string) {
 	for _, r := range s.rooms {
 		r.broadcast(s.devbot, msg) // Hardcoding devbot as the sender is probably fine since this is for system messages
 	}
+}
+
+func (s *server) newUser(sess ssh.Session) *user {
+	term := terminal.NewTerminal(sess, "> ")
+	_ = term.SetSize(10000, 10000) // disable any formatting done by term
+	pty, winChan, _ := sess.Pty()
+	w := pty.Window
+	host, _, _ := net.SplitHostPort(sess.RemoteAddr().String()) // definitely should not give an err
+
+	toHash := ""
+
+	pubkey := sess.PublicKey()
+	if pubkey != nil {
+		toHash = string(pubkey.Marshal())
+	} else { // If we can't get the public key fall back to the IP.
+		toHash = host
+	}
+
+	now := time.Now()
+	u := &user{
+		name:          "",
+		pronouns:      []string{"unset"},
+		session:       sess,
+		term:          term,
+		bell:          true,
+		colorBG:       "bg-off", // the FG will be set randomly
+		id:            shasum(toHash),
+		addr:          host,
+		win:           w,
+		lastTimestamp: now,
+		joinTime:      now,
+		room:          s.mainRoom}
+
+	go func() {
+		for u.win = range winChan {
+		}
+	}()
+
+	s.l.Println("Connected " + u.name + " [" + u.id + "]")
+
+	if s.bans.contains(u.addr, u.id) {
+		s.l.Println("Rejected " + u.name + " [" + host + "]")
+		u.writeln(s.devbot, "**You are banned**. If you feel this was a mistake, please reach out at github.com/quackduck/devzat/issues or email igoel.mail@gmail.com. Please include the following information: [ID "+u.id+"]")
+		u.closeQuietly()
+		return nil
+	}
+
+	idsInMinToTimes[u.id]++
+	time.AfterFunc(60*time.Second, func() {
+		idsInMinToTimes[u.id]--
+	})
+	if idsInMinToTimes[u.id] > 6 {
+		bans = append(bans, ban{u.addr, u.id})
+		mainRoom.broadcast(devbot, "`"+sess.User()+"` has been banned automatically. ID: "+u.id)
+		return nil
+	}
+
+	clearCMD("", u) // always clear the screen on connect
+
+	if len(backlog) > 0 {
+		lastStamp := s.backlog[0].timestamp
+		u.rWriteln(printPrettyDuration(u.joinTime.Sub(lastStamp)) + " earlier")
+		for _, msg := range s.backlog {
+			if msg.timestamp.Sub(lastStamp) > time.Minute {
+				lastStamp = msg.timestamp
+				u.rWriteln(printPrettyDuration(u.joinTime.Sub(lastStamp)) + " earlier")
+			}
+			u.writeln(msg.senderName, msg.text)
+		}
+	}
+
+	if err := u.pickUsernameQuietly(sess.User()); err != nil { // user exited or had some error
+		l.Println(err)
+		sess.Close()
+		return nil
+	}
+
+	// TODO: this should probably be a method of room
+	s.mainRoom.usersMutex.Lock()
+	s.mainRoom.users = append(mainRoom.users, u)
+	s.mainRoom.usersMutex.Unlock()
+
+	u.term.SetBracketedPasteMode(true) // experimental paste bracketing support
+	term.AutoCompleteCallback = func(line string, pos int, key rune) (string, int, bool) {
+		return autocompleteCallback(u, line, pos, key)
+	}
+
+	switch len(s.mainRoom.users) - 1 {
+	case 0:
+		u.writeln("", blue.Paint("Welcome to the chat. There are no more users"))
+	case 1:
+		u.writeln("", yellow.Paint("Welcome to the chat. There is one more user"))
+	default:
+		u.writeln("", green.Paint("Welcome to the chat. There are", strconv.Itoa(len(mainRoom.users)-1), "more users"))
+	}
+	s.mainRoom.broadcast(s.devbot, u.name+" has joined the chat")
+	return u
 }
