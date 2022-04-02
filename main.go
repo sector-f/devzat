@@ -244,8 +244,12 @@ func userMentionAutocomplete(u *user, words []string) string {
 }
 
 func roomAutocomplete(u *user, words []string) string {
+	if len(words) < 1 {
+		return ""
+	}
+
 	// trying to refer to a room?
-	if len(words) > 0 && words[len(words)-1][0] == '#' {
+	if words[len(words)-1][0] == '#' {
 		// don't slice the # off, since the room name includes it
 		for name := range rooms {
 			toAdd := strings.TrimPrefix(name, words[len(words)-1])
@@ -254,6 +258,7 @@ func roomAutocomplete(u *user, words []string) string {
 			}
 		}
 	}
+
 	return ""
 }
 
