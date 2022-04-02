@@ -29,9 +29,8 @@ var (
 	port        = 22
 	scrollback  = 16
 	profilePort = 5555
-	// should this instance run offline? (should it not connect to slack or twitter?)
-	offlineSlack   = os.Getenv("DEVZAT_OFFLINE_SLACK") != ""
-	offlineTwitter = os.Getenv("DEVZAT_OFFLINE_TWITTER") != ""
+	// should this instance run offline? (should it not connect to slack?)
+	offlineSlack = os.Getenv("DEVZAT_OFFLINE_SLACK") != ""
 
 	mainRoom         = &room{"#main", make([]*user, 0, 10), sync.Mutex{}}
 	rooms            = map[string]*room{mainRoom.name: mainRoom}
@@ -144,7 +143,6 @@ func main() {
 	// Check for global offline for backwards compatibility
 	if os.Getenv("DEVZAT_OFFLINE") != "" {
 		offlineSlack = true
-		offlineTwitter = true
 	}
 
 	fmt.Printf("Starting chat server on port %d and profiling on port %d\n", port, profilePort)
@@ -335,7 +333,6 @@ func newUser(s ssh.Session) *user {
 
 	mainRoom.usersMutex.Lock()
 	mainRoom.users = append(mainRoom.users, u)
-	go sendCurrentUsersTwitterMessage()
 	mainRoom.usersMutex.Unlock()
 
 	u.term.SetBracketedPasteMode(true) // experimental paste bracketing support
@@ -373,11 +370,10 @@ func cleanupRoom(r *room) {
 	}
 }
 
-// Removes a user and prints Twitter and chat message
+// Removes a user and chat message
 func (u *user) close(msg string) {
 	u.closeOnce.Do(func() {
 		u.closeQuietly()
-		go sendCurrentUsersTwitterMessage()
 		if time.Since(u.joinTime) > time.Minute/2 {
 			msg += ". They were online for " + printPrettyDuration(time.Since(u.joinTime))
 		}
