@@ -35,28 +35,28 @@ func init() {
 		cfgFile = "devzat-config.yml"
 	}
 
-	errCheck := func(err error) {
+	quitIfErr := func(err error) {
 		if err != nil {
-			fmt.Println("err: " + err.Error())
-			os.Exit(0)
+			fmt.Fprintln(os.Stderr, "err: "+err.Error())
+			os.Exit(1)
 		}
 	}
 
 	if _, err := os.Stat(cfgFile); err != nil {
 		if os.IsNotExist(err) {
-			fmt.Println("Config file not found, so writing the default one to " + cfgFile)
+			fmt.Fprintln(os.Stderr, "Config file not found, so writing the default one to "+cfgFile)
 
 			d, err := yaml.Marshal(Config)
-			errCheck(err)
+			quitIfErr(err)
 			err = os.WriteFile(cfgFile, d, 0644)
-			errCheck(err)
+			quitIfErr(err)
 			return
 		}
-		errCheck(err)
+		quitIfErr(err)
 	}
 	d, err := ioutil.ReadFile(cfgFile)
-	errCheck(err)
+	quitIfErr(err)
 	err = yaml.Unmarshal(d, &Config)
-	errCheck(err)
+	quitIfErr(err)
 	fmt.Println("Config loaded from "+cfgFile, Config)
 }

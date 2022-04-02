@@ -132,8 +132,8 @@ func main() {
 	if os.Getenv("PORT") != "" {
 		port, err = strconv.Atoi(os.Getenv("PORT"))
 		if err != nil {
-			fmt.Println(err)
-			return
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
 		}
 	}
 
@@ -143,7 +143,7 @@ func main() {
 			fmt.Println("Also starting chat server on port 443")
 			err = ssh.ListenAndServe(":443", nil, ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"))
 			if err != nil {
-				fmt.Println(err)
+				fmt.Fprintln(os.Stderr, err)
 			}
 		}
 	}()
@@ -151,7 +151,7 @@ func main() {
 		return true // allow all keys, this lets us hash pubkeys later
 	}))
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 	}
 }
 

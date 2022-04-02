@@ -27,13 +27,13 @@ var (
 func getAdmins() map[string]string {
 	data, err := ioutil.ReadFile("admins.json")
 	if err != nil {
-		fmt.Println("Error reading admins.json:", err, ". Make an admins.json file to add admins.")
+		fmt.Fprintln(os.Stderr, "Error reading admins.json:", err, ". Make an admins.json file to add admins.")
 		return nil
 	}
 	var adminsList map[string]string // id to info
 	err = json.Unmarshal(data, &adminsList)
 	if err != nil {
-		fmt.Println("Error in admins.json formatting.")
+		fmt.Fprintln(os.Stderr, "Error in admins.json formatting.")
 		return nil
 	}
 	return adminsList
