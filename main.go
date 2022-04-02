@@ -45,11 +45,6 @@ const (
 	maxMsgLen = 5120
 )
 
-type ban struct {
-	Addr string
-	ID   string
-}
-
 type room struct {
 	name       string
 	users      []*user
