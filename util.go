@@ -162,22 +162,6 @@ func saveBans() {
 	}
 }
 
-func readBans() {
-	f, err := os.Open("bans.json")
-	if err != nil {
-		l.Println(err)
-		return
-	}
-	defer f.Close()
-
-	err = json.NewDecoder(f).Decode(&bans)
-	if err != nil {
-		rooms["#main"].broadcast(devbot, "error reading bans: "+err.Error())
-		l.Println(err)
-		return
-	}
-}
-
 func findUserByName(r *room, name string) (*user, bool) {
 	r.usersMutex.Lock()
 	defer r.usersMutex.Unlock()

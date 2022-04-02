@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -49,11 +50,26 @@ func newServer() (*server, error) {
 		port        = 22
 		scrollback  = 16
 		profilePort = 5555
-		logfileName = "log.txt"
+
+		logFilename = "log.txt"
+		banFilename = "bans.json"
 	)
 
 	// Do the thing(s) that can fail as early as possible
-	logfile, err := os.OpenFile(logfileName, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0666)
+	logfile, err := os.OpenFile(logFilename, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: move this into separate method to allow hot reloading?
+	bans := []ban{}
+	banfile, err := os.Open(banFilename)
+	if err != nil {
+		return nil, err
+	}
+	defer banfile.Close()
+
+	err = json.NewDecoder(banfile).Decode(&bans)
 	if err != nil {
 		return nil, err
 	}
@@ -66,12 +82,13 @@ func newServer() (*server, error) {
 		mainRoom:         &room{name: "#main"},
 		rooms:            make(map[string]*room),
 		backlog:          make([]backlogMessage, 0, scrollback),
+		bans:             bans,
 		idsInMinToTimes:  make(map[string]int, 10),
 		antispamMessages: make(map[string]int),
 
 		logfile:     logfile,
 		l:           log.New(io.MultiWriter(logfile, os.Stdout), "", log.Ldate|log.Ltime|log.Lshortfile),
-		devbot:      "devbot",
+		devbot:      green.Paint("devbot"),
 		startupTime: time.Now(),
 	}
 
@@ -146,17 +163,18 @@ type backlogMessage struct {
 	text       string
 }
 
-// TODO: have a web dashboard that shows logs
 func main() {
-	go func() {
-		err := http.ListenAndServe(fmt.Sprintf(":%d", profilePort), nil)
-		if err != nil {
-			l.Println(err)
-		}
-	}()
-	devbot = green.Paint("devbot")
+	// TODO: have a web dashboard that shows logs
+	/*
+		go func() {
+			err := http.ListenAndServe(fmt.Sprintf(":%d", profilePort), nil)
+			if err != nil {
+				l.Println(err)
+			}
+		}()
+	*/
+
 	rand.Seed(time.Now().Unix())
-	readBans()
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
