@@ -2,10 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"os"
+	"runtime/debug"
 	"time"
+
+	"github.com/gliderlabs/ssh"
 )
 
 type server struct {
@@ -22,7 +26,7 @@ type server struct {
 
 	logfile     *os.File
 	l           *log.Logger
-	devbot      string
+	devbot      string // TODO: can we get rid of this entirely?
 	startupTime time.Time
 }
 
@@ -77,6 +81,52 @@ func newServer() (*server, error) {
 	return &s, nil
 }
 
+func (s *server) run() error {
+	// TODO: see if we can create a concrete instance here rather than relying on
+	// package-scoped vars, like ssh.DefaultHandler here
+	ssh.Handle(func(s ssh.Session) {
+		u := newUser(s)
+		if u == nil {
+			s.Close()
+			return
+		}
+		defer func() { // crash protection
+			if i := recover(); i != nil {
+				mainRoom.broadcast(devbot, "Slap the developers in the face for me, the server almost crashed, also tell them this: "+fmt.Sprint(i)+", stack: "+string(debug.Stack()))
+			}
+		}()
+		u.repl()
+	})
+
+	// TODO: decide if this functionality is actually necessary/desired
+	if s.port == 22 {
+		fmt.Println("Also starting chat server on port 443")
+		go func() {
+			err := ssh.ListenAndServe(":443", nil, ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"))
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		}()
+	}
+
+	return ssh.ListenAndServe(
+		fmt.Sprintf(":%d", port),
+		nil,
+		ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"),
+		ssh.PublicKeyAuth(
+			func(ctx ssh.Context, key ssh.PublicKey) bool {
+				return true // allow all keys, this lets us hash pubkeys later
+			},
+		),
+	)
+}
+
 func (s *server) shutdown() {
 	s.logfile.Close()
+}
+
+func (s *server) universeBroadcast(msg string) {
+	for _, r := range s.rooms {
+		r.broadcast(s.devbot, msg) // Hardcoding devbot as the sender is probably fine since this is for system messages
+	}
 }

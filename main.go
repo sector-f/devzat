@@ -13,7 +13,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -100,7 +99,14 @@ func main() {
 		}()
 	*/
 
+	server, err := newServer()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	rand.Seed(time.Now().Unix())
+
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
@@ -112,47 +118,15 @@ func main() {
 			l.Println("Broadcast taking too long, exiting server early.")
 			os.Exit(4)
 		})
-		universeBroadcast(devbot, "Server going down! This is probably because it is being updated. Try joining back immediately.  \n"+
+		server.universeBroadcast("Server going down! This is probably because it is being updated. Try joining back immediately.  \n" +
 			"If you still can't join, try joining back in 2 minutes. If you _still_ can't join, make an issue at github.com/quackduck/devzat/issues")
 		os.Exit(0)
 	}()
-	ssh.Handle(func(s ssh.Session) {
-		u := newUser(s)
-		if u == nil {
-			s.Close()
-			return
-		}
-		defer func() { // crash protection
-			if i := recover(); i != nil {
-				mainRoom.broadcast(devbot, "Slap the developers in the face for me, the server almost crashed, also tell them this: "+fmt.Sprint(i)+", stack: "+string(debug.Stack()))
-			}
-		}()
-		u.repl()
-	})
 
-	fmt.Printf("Starting chat server on port %d and profiling on port %d\n", port, profilePort)
-	go func() {
-		if port == 22 {
-			fmt.Println("Also starting chat server on port 443")
-			err := ssh.ListenAndServe(":443", nil, ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"))
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-			}
-		}
-	}()
-
-	err := ssh.ListenAndServe(
-		fmt.Sprintf(":%d", port),
-		nil,
-		ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"),
-		ssh.PublicKeyAuth(
-			func(ctx ssh.Context, key ssh.PublicKey) bool {
-				return true // allow all keys, this lets us hash pubkeys later
-			},
-		),
-	)
+	err = server.run()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 
