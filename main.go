@@ -25,7 +25,6 @@ import (
 )
 
 var (
-	port        = 22
 	scrollback  = 16
 	profilePort = 5555
 

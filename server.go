@@ -84,15 +84,15 @@ func newServer() (*server, error) {
 func (s *server) run() error {
 	// TODO: see if we can create a concrete instance here rather than relying on
 	// package-scoped vars, like ssh.DefaultHandler here
-	ssh.Handle(func(s ssh.Session) {
-		u := newUser(s)
+	ssh.Handle(func(sess ssh.Session) {
+		u := newUser(sess)
 		if u == nil {
-			s.Close()
+			sess.Close()
 			return
 		}
 		defer func() { // crash protection
 			if i := recover(); i != nil {
-				mainRoom.broadcast(devbot, "Slap the developers in the face for me, the server almost crashed, also tell them this: "+fmt.Sprint(i)+", stack: "+string(debug.Stack()))
+				mainRoom.broadcast(s.devbot, "Slap the developers in the face for me, the server almost crashed, also tell them this: "+fmt.Sprint(i)+", stack: "+string(debug.Stack()))
 			}
 		}()
 		u.repl()
@@ -110,7 +110,7 @@ func (s *server) run() error {
 	}
 
 	return ssh.ListenAndServe(
-		fmt.Sprintf(":%d", port),
+		fmt.Sprintf(":%d", s.port),
 		nil,
 		ssh.HostKeyFile(os.Getenv("HOME")+"/.ssh/id_rsa"),
 		ssh.PublicKeyAuth(
