@@ -6,7 +6,9 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"math"
 	"math/rand"
@@ -163,7 +165,7 @@ func saveBans() {
 
 func readBans() {
 	f, err := os.Open("bans.json")
-	if err != nil && !os.IsNotExist(err) { // if there is an error and it is not a "file does not exist" error
+	if err != nil && !errors.Is(err, fs.ErrNotExist) { // if there is an error and it is not a "file does not exist" error
 		l.Println(err)
 		return
 	}

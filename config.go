@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 
@@ -43,7 +45,7 @@ func init() {
 	}
 
 	if _, err := os.Stat(cfgFile); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			fmt.Fprintln(os.Stderr, "Config file not found, so writing the default one to "+cfgFile)
 
 			d, err := yaml.Marshal(Config)
