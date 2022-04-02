@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
+
+	"gopkg.in/yaml.v2"
 )
 
 type config struct {
@@ -20,11 +21,11 @@ var (
 	// TODO: use this config!!
 
 	Config = config{ // first stores default config
-		2221,
-		5555,
-		"./devzat-data",
-		"./devzat-sshkey",
-		"./devzat-creds.json",
+		SSHPort:     2221,
+		ProfilePort: 5555,
+		DataDir:     "./devzat-data",
+		KeyFile:     "./devzat-sshkey",
+		CredsFile:   "./devzat-creds.json",
 	}
 )
 
