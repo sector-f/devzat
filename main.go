@@ -106,7 +106,7 @@ func main() {
 	go func() {
 		<-c
 		fmt.Println("Shutting down...")
-		saveBans()
+		server.shutdown()
 		logfile.Close()
 		time.AfterFunc(time.Second, func() {
 			l.Println("Broadcast taking too long, exiting server early.")

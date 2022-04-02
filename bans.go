@@ -56,7 +56,7 @@ func (b *banlist) save() error {
 
 	j := json.NewEncoder(banfile)
 	j.SetIndent("", "   ")
-	return j.Encode(bans)
+	return j.Encode(b.bans)
 }
 
 // contains returns true if the addr or id is found in the bans list

@@ -124,6 +124,7 @@ func (s *server) run() error {
 }
 
 func (s *server) shutdown() {
+	s.bans.save()
 	s.logfile.Close()
 }
 
