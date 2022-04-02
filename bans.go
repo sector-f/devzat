@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"sync"
 )
@@ -19,7 +18,9 @@ type banlist struct {
 }
 
 func banlistFromFile(filename string) (*banlist, error) {
-	return nil, errors.New("Unimplemented")
+	b := banlist{filename: filename}
+	err := b.reload()
+	return &b, err
 }
 
 func (b *banlist) reload() error {

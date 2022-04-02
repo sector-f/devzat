@@ -1,9 +1,10 @@
 package main
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"os"
 	"runtime/debug"
@@ -20,7 +21,7 @@ type server struct {
 	mainRoom         *room
 	rooms            map[string]*room
 	backlog          []backlogMessage
-	bans             []ban
+	bans             *banlist
 	idsInMinToTimes  map[string]int
 	antispamMessages map[string]int
 
@@ -47,15 +48,16 @@ func newServer() (*server, error) {
 		return nil, err
 	}
 
-	// TODO: move this into separate method to allow hot reloading?
-	bans := []ban{}
-	banfile, err := os.Open(banFilename)
-	if err != nil {
+	bans, err := banlistFromFile(banFilename)
+	switch {
+	case err == nil, errors.Is(err, fs.ErrNotExist):
+		// We don't need to return early just because the ban file doesn't exist
+	default:
 		return nil, err
 	}
-	defer banfile.Close()
 
-	err = json.NewDecoder(banfile).Decode(&bans)
+	// Not being able to _save_ the bans file is worth returning early for, though
+	err = bans.save()
 	if err != nil {
 		return nil, err
 	}
