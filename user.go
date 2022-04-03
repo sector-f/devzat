@@ -60,13 +60,6 @@ func (u *user) closeQuietly() {
 	u.session.Close()
 }
 
-// cleanupRoom deletes a room if it's empty and isn't the main room
-func cleanupRoom(r *room) {
-	if r != mainRoom && len(r.users) == 0 {
-		delete(rooms, r.name)
-	}
-}
-
 func (u *user) writeln(senderName string, msg string) {
 	if strings.Contains(msg, u.name) { // is a ping
 		msg += "\a"
@@ -176,6 +169,7 @@ func (u *user) pickUsernameQuietly(possibleName string) error {
 	return nil
 }
 
+// TODO: give more accurate name
 func (u *user) displayPronouns() string {
 	result := ""
 	for i := 0; i < len(u.pronouns); i++ {
@@ -188,6 +182,7 @@ func (u *user) displayPronouns() string {
 	return result[1:]
 }
 
+// TODO: use mutex?
 func (u *user) changeRoom(r *room) {
 	if u.room == r {
 		return

@@ -233,3 +233,15 @@ func (s *server) newUser(sess ssh.Session) *user {
 	s.mainRoom.broadcast(s.devbot, u.name+" has joined the chat")
 	return u
 }
+
+func (s *server) closeUser(user *user, msg string) {
+	user.closeOnce.Do(func() {
+		user.closeQuietly()
+		if time.Since(user.joinTime) > time.Minute/2 {
+			msg += ". They were online for " + printPrettyDuration(time.Since(user.joinTime))
+		}
+		user.room.broadcast(devbot, msg)
+		user.room.users = remove(user.room.users, user)
+		cleanupRoom(user.room)
+	})
+}

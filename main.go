@@ -103,17 +103,6 @@ func (r *room) broadcast(senderName, msg string) {
 	msg = strings.ReplaceAll(msg, "@everyone", green.Paint("everyone\a"))
 	r.usersMutex.Lock()
 
-	/*
-		for i := range r.users {
-			msg = strings.ReplaceAll(msg, "@"+stripansi.Strip(r.users[i].name), r.users[i].name)
-			msg = strings.ReplaceAll(msg, `\`+r.users[i].name, "@"+stripansi.Strip(r.users[i].name)) // allow escaping
-		}
-
-		for i := range r.users {
-			r.users[i].writeln(senderName, msg)
-		}
-	*/
-
 	for _, user := range r.users {
 		msg = strings.ReplaceAll(msg, "@"+stripansi.Strip(user.name), user.name)
 		msg = strings.ReplaceAll(msg, `\`+user.name, "@"+stripansi.Strip(user.name)) // allow escaping
@@ -337,4 +326,11 @@ func bansContains(b []ban, addr string, id string) bool {
 		}
 	}
 	return false
+}
+
+// cleanupRoom deletes a room if it's empty and isn't the main room
+func cleanupRoom(r *room) {
+	if r != mainRoom && len(r.users) == 0 {
+		delete(rooms, r.name)
+	}
 }
