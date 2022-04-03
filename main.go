@@ -25,8 +25,7 @@ import (
 )
 
 var (
-	scrollback  = 16
-	profilePort = 5555
+	scrollback = 16
 
 	mainRoom         = &room{"#main", make([]*user, 0, 10), sync.Mutex{}}
 	rooms            = map[string]*room{mainRoom.name: mainRoom}
